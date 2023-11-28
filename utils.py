@@ -25,14 +25,12 @@ def conj_q(q):
 
     return qc
 
-@jax.jit
 def q_to_psi(q,eps=1e-4):
 
     a2 = jnp.where(q[...,3] > (-1 + eps), (1. - q[...,3]) / (1. + q[...,3]) , 0)[...,jnp.newaxis]
 
     return q[...,:3] * 0.5 * (a2 + 1)
 
-@jax.jit
 def psi_to_q(psi):
 
     a2 = jnp.square(psi).sum(axis=-1)
@@ -46,7 +44,6 @@ def psi_to_q(psi):
 
     return out
 
-@jax.jit
 def RotMat_q(q):
 
     R00 = 2 * (q[...,0]**2 + q[...,1]**2) - 1
@@ -61,9 +58,9 @@ def RotMat_q(q):
 
     return R00,R01,R02,R10,R11,R12,R20,R21,R22
 
-@jax.jit
-def RotMat_Vec(q,t,x,y,z,nx,ny,nz,Δx,Δy,Δz):
+def RotMat_Vec(psi,t,x,y,z,nx,ny,nz,Δx,Δy,Δz):
 
+    q = psi_to_q(psi)
     R00,R01,R02,R10,R11,R12,R20,R21,R22 = RotMat_q(q)
     xr = (R00 * (x - Δx*nx/2. - t[...,0]) + R10 * (y - Δy*ny/2. - t[...,1]) + R20 * (z - Δz*nz/2. - t[...,2])) / Δx + nx/2.
     yr = (R01 * (x - Δx*nx/2. - t[...,0]) + R11 * (y - Δy*ny/2. - t[...,1]) + R21 * (z - Δz*nz/2. - t[...,2])) / Δy + ny/2.
@@ -71,9 +68,9 @@ def RotMat_Vec(q,t,x,y,z,nx,ny,nz,Δx,Δy,Δz):
     
     return xr,yr,zr
 
-@jax.jit
-def RotMat_T_Vec(q,t,x,y,z,nx,ny,nz,Δx,Δy,Δz):
+def RotMat_T_Vec(psi,t,x,y,z,nx,ny,nz,Δx,Δy,Δz):
 
+    q = psi_to_q(psi)
     R00,R01,R02,R10,R11,R12,R20,R21,R22 = RotMat_q(q)
     xr = (R00 * (x - Δx*nx/2.) + R01 * (y - Δy*ny/2.) + R02 * (z - Δz*nz/2.) + t[...,0]) / Δx + nx/2.
     yr = (R10 * (x - Δx*nx/2.) + R11 * (y - Δy*ny/2.) + R12 * (z - Δz*nz/2.) + t[...,1]) / Δy + ny/2.
@@ -82,8 +79,3 @@ def RotMat_T_Vec(q,t,x,y,z,nx,ny,nz,Δx,Δy,Δz):
     return xr,yr,zr
 
 
-
-
-@jax.jit
-def prox_tv():
-    ...
