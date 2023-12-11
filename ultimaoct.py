@@ -27,20 +27,20 @@ class PARS(eqx.Module):
     Δn: jnp.ndarray # refractive index contrast map
     ψ: jnp.ndarray # reduced representation of quaternions for optimization
     t: jnp.ndarray # translation
-    nx_d: jnp.integer # axial size of the oct volumes
-    nx: jnp.integer # axial size of the reconstruction compressed by a factor of ~nx_d / n0
-    ny: jnp.integer
-    nz: jnp.integer
-    Δx: jnp.ndarray
-    Δy: jnp.ndarray
-    Δz: jnp.ndarray
+    nx_d: int # axial gridpoints of the oct volumes
+    nx: int # axial gridpoints of the reconstruction compressed by a factor of ~nx_d / n0
+    ny: int # lateral gridpoints
+    nz: int
+    Δx: float
+    Δy: float
+    Δz: float
     n0: jnp.ndarray # background refractive index, ~1.33 for water
     x_C: jnp.ndarray # parameters for confocal psf and sensitivity roll-off
     x_D: jnp.ndarray
     x_F: jnp.ndarray
     x_R: jnp.ndarray
     ratio: jnp.ndarray
-    x_d: jnp.ndarray 
+    x_d: jnp.ndarray # 
     x: jnp.ndarray
     y: jnp.ndarray
     z: jnp.ndarray
@@ -49,11 +49,13 @@ class PARS(eqx.Module):
 def T(p, x):
 
     return 1. / (1. + (( x - p.x_F) / (2. * p.n0 * p.x_R))**2 )
+
 # sensitivity roll-off
 def H(p, x):
 
     return (((sinc( (x - p.x_C) / (2. * p.x_D)  ))**2 * 
         exp(- p.ratio / (2 * log(2)) * (pi * (x - p.x_C) / (2. * p.x_D))**2 )))
+
 # adjoint motion for the mask 
 def br(a, p):
 
@@ -65,7 +67,6 @@ def br(a, p):
 def ip(p, xim):
 
     xr, yr, zr = RotMat_Vec(p.ψ, p.t, xim, p.y[:,None], p.z[None], p.nx, p.ny, p.nz, p.Δx, p.Δy, p.Δz)
-    #jax.debug.print('{s}', s=xr.shape)
     rot = lambda a: mc(a, (xr, yr, zr), order=1)
     Rim, αim, Δnim = rot(p.R), rot(p.α), rot(p.Δn)
 
@@ -78,6 +79,7 @@ def att(p, Rim, αim, Aim, xi, xim):
     Iim = Rim * Ai * T(p, xi) * H(p, xi)
 
     return Iim, Ai
+
 # full propagation step
 def step(p, Aim, xim):
 
@@ -86,13 +88,6 @@ def step(p, Aim, xim):
     Iim, Ai = att(p, Rim, αim, Aim, xi, xim)
     
     return Iim, Ai, xi, Rri
-
-def prop_Ai_xi_bwd(p, Ai, xi):
-
-    Aim = Ai * exp(αim * (xi - xim))
-    xim = xi - p.Δx / (p.n0 + Δnim)
-
-    return Aim, xim
 
 def _fwd(p):
 
@@ -104,7 +99,6 @@ def _fwd(p):
         return (Ai, xi, I)
 
     I = zeros((p.nx, p.ny, p.nz))
-
     A0 = ones((p.ny, p.nz))
     x0 = zeros((p.ny, p.nz))
 
